@@ -59,7 +59,7 @@ public class PeopleController {
     }
 
     @PostMapping("/{id}/delete")
-    public String deletePerson(@PathVariable("id") Long id){
+    public String deletePerson(@PathVariable("id") Long id) {
         personDAO.deleteById(id);
         return "redirect:/people";
     }
