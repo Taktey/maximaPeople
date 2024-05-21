@@ -3,10 +3,12 @@ package ru.maxima.dao;
 import org.springframework.stereotype.Component;
 import ru.maxima.models.Person;
 
+import javax.swing.text.html.Option;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class PersonDAO {
@@ -56,9 +58,9 @@ public class PersonDAO {
     public Person findById(final Long id) {
         Person person = new Person();
         try {
-            Statement statement = connection.createStatement();
-            String SQLQuery = "select * from person where id=  " + id + ";";
-            ResultSet resultSet = statement.executeQuery(SQLQuery);
+            PreparedStatement statement = connection.prepareStatement("select * from person where id= ?");
+            statement.setLong(1, id);
+            ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
                 person.setId(resultSet.getLong("id"));
                 person.setName(resultSet.getString("name"));
@@ -72,13 +74,22 @@ public class PersonDAO {
     }
 
     public void save(Person person) {
-        Long id = getAllPeople().stream()
-                .map(Person::getId).max(Comparator.naturalOrder()).get();
+        Long id=0L;
+        Optional<Long> optional = getAllPeople().stream()
+                .map(Person::getId).max(Comparator.naturalOrder());
+        if(optional.isPresent()){
+            id= optional.get();
+        }
+
         try {
-            Statement statement = connection.createStatement();
-            String SQLQuery = "Insert into person(id,name,email,age) values(" + ++id + ", '"
-                    + person.getName() + "', '" + person.getEmail() + "', " + person.getAge() + ")";
-            statement.executeUpdate(SQLQuery);
+            PreparedStatement statement = connection.prepareStatement
+                    ("Insert into person(id,name,email,age) values(?,?,?,?)");
+            statement.setLong(1, ++id);
+            statement.setString(2, person.getName());
+            statement.setString(3, person.getEmail());
+            statement.setInt(4, person.getAge());
+
+            statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -86,11 +97,12 @@ public class PersonDAO {
 
     public void update(Person personFromView, Long id) {
         try {
-            Statement statement = connection.createStatement();
-            String SQLQuery = "update person " +
-                    "set name= '" + personFromView.getName() + "', email= '" + personFromView.getEmail() + "', "
-                    + "age= " + personFromView.getAge() + " where id=  " + id + ";";
-            statement.executeUpdate(SQLQuery);
+            PreparedStatement statement = connection.prepareStatement
+                    ("update person set name= ?, email= ?, age= ? where id= " + id);
+            statement.setString(1, personFromView.getName());
+            statement.setString(2, personFromView.getEmail());
+            statement.setInt(3, personFromView.getAge());
+            statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -98,9 +110,9 @@ public class PersonDAO {
 
     public void deleteById(Long id) {
         try {
-            Statement statement = connection.createStatement();
-            String SQLQuery = "delete from person where id= "+id;
-            statement.executeUpdate(SQLQuery);
+            PreparedStatement statement = connection.prepareStatement("delete from person where id= ?");
+            statement.setLong(1, id);
+            statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
